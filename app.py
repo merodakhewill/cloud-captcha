@@ -29,6 +29,10 @@ def generate_random_text():
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choices(chars, k=CAPTCHA_TEXT_LENGTH))
 
+def token_ok():
+    expected = os.environ.get("ACCESS_TOKEN")
+    return bool(expected) and request.headers.get("Authorization") == f"Bearer {expected}"
+
 # make cloud serve the frontend as well (templates/index.html)
 @app.route("/")
 def index():
@@ -42,6 +46,9 @@ def get_captcha():
     Endpoint: GET /captcha
     Generates a text challenge and saves the fuzzy image to disk.
     """
+    if not token_ok():
+        return jsonify({"error": "Unauthorized"}), 401
+
     global current_captcha_answer
     current_captcha_answer = generate_random_text()
 
@@ -72,6 +79,9 @@ def verify_captcha():
     Endpoint: POST /verify
     Checks if the user's JSON input matches the stored captcha.
     """
+    if not token_ok():
+        return jsonify({"error": "Unauthorized"}), 401
+    
     # Get JSON data from the request body
     data = request.get_json()
 
